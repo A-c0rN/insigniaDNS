@@ -16,10 +16,10 @@ from requests.exceptions import Timeout
 
 def get_platform():
     platforms = {
-        'linux1': 'Linux',
-        'linux2': 'Linux',
-        'darwin': 'macOS',
-        'win32': 'Windows'
+        "linux1": "Linux",
+        "linux2": "Linux",
+        "darwin": "macOS",
+        "win32": "Windows",
     }
     if platform not in platforms:
         return platform
@@ -27,7 +27,7 @@ def get_platform():
     return platforms[platform]
 
 
-insigniaDNS_VERSION = "1.0"
+insigniaDNS_VERSION = "1.1"
 
 
 # Adds preceding zeros to IP addresses
@@ -41,10 +41,10 @@ def get_ip():
     s = socket(AF_INET, SOCK_DGRAM)
     try:
         # doesn't even have to be reachable
-        s.connect(('10.255.255.255', 1))
+        s.connect(("10.255.255.255", 1))
         IP = s.getsockname()[0]
     except:
-        IP = '127.0.0.1'
+        IP = "127.0.0.1"
     finally:
         s.close()
     return IP
@@ -54,28 +54,9 @@ EPOCH = datetime(1970, 1, 1)
 SERIAL = int((datetime.utcnow() - EPOCH).total_seconds())
 MY_IP = get_ip()
 
-print("+===============================+")
-print("|      Insignia DNS Server      |")
-print(f"|         Version {insigniaDNS_VERSION}         |")
-print("+===============================+\n")
-
-print("== Welcome to insigniaDNS! ==")
 print(
-    "This server will allow you to connect to Insignia when your Internet Service Provider does not work with custom DNS.\n")
-
-print("== How To Use ==")
-print("First, make sure that your console is connected to the same network as this computer.\n")
-
-print("Then, put these settings in for DNS on your console:")
-print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-print(f"Primary DNS:   {format_ip(MY_IP)}")
-print("Secondary DNS: 001.001.001.001")
-print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-
-print("== Getting Help ==")
-print("Need help? Visit our Discord server or check out https://support.insignia.live\n")
-
-print("[INFO] Starting insigniaDNS...")
+    f"+===============================+\n|      Insignia DNS Server      |\n|         Version {insigniaDNS_VERSION}           |\n+===============================+\n\n== Welcome to insigniaDNS! ==\nThis server will allow you to connect to Insignia when your Internet Service Provider does not work with custom DNS.\n\n== How To Use ==\nFirst, make sure that your console is connected to the same network as this computer.\n\nThen, put these settings in for DNS on your console:\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nPrimary DNS:   {format_ip(MY_IP)}\nSecondary DNS: 001.001.001.001\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n== Getting Help ==\nNeed help? Visit our Discord server or check out https://support.insignia.live\n\n[INFO] Starting insigniaDNS..."
+)
 
 TYPE_LOOKUP = {
     A: QTYPE.A,
@@ -90,6 +71,7 @@ TYPE_LOOKUP = {
 
 # Can't seem to turn off DNSLogger with a None type so let's just null it out with a dummy function
 
+
 class insigniaDNSLogger(object):
     def log_recv(self, handler, data):
         pass
@@ -98,13 +80,17 @@ class insigniaDNSLogger(object):
         pass
 
     def log_request(self, handler, request):
-        print("[INFO] Received DNS request from console at " + handler.client_address[0])
+        print(
+            f"[INFO] Received DNS request from console at {handler.client_address[0]}"
+        )
 
     def log_reply(self, handler, reply):
-        print("[INFO] Sent response to console at " + handler.client_address[0])
+        print(
+            f"[INFO] Sent response to console at {handler.client_address[0]}"
+        )
 
     def log_error(self, handler, e):
-        print("[ERROR] Invalid DNS request from " + handler.client_address[0])
+        print(f"[ERROR] Invalid DNS request from{handler.client_address[0]}")
 
     def log_truncated(self, handler, reply):
         pass
@@ -114,7 +100,9 @@ class insigniaDNSLogger(object):
 
 
 class Record:
-    def __init__(self, rdata_type, *args, rtype=None, rname=None, ttl=None, **kwargs):
+    def __init__(
+        self, rdata_type, *args, rtype=None, rname=None, ttl=None, **kwargs
+    ):
         if isinstance(rdata_type, RD):
             # actually an instance, not a type
             self._rtype = TYPE_LOOKUP[rdata_type.__class__]
@@ -123,13 +111,15 @@ class Record:
             self._rtype = TYPE_LOOKUP[rdata_type]
             if rdata_type == SOA and len(args) == 2:
                 # add sensible times to SOA
-                args += ((
-                             SERIAL,  # serial number
-                             60 * 60 * 1,  # refresh
-                             60 * 60 * 3,  # retry
-                             60 * 60 * 24,  # expire
-                             60 * 60 * 1,  # minimum
-                         ),)
+                args += (
+                    (
+                        SERIAL,  # serial number
+                        60 * 60 * 1,  # refresh
+                        60 * 60 * 3,  # retry
+                        60 * 60 * 24,  # expire
+                        60 * 60 * 1,  # minimum
+                    ),
+                )
             rdata = rdata_type(*args)
 
         if rtype:
@@ -146,7 +136,9 @@ class Record:
             return self.as_rr(q.qname)
 
     def as_rr(self, alt_rname):
-        return RR(rname=self._rname or alt_rname, rtype=self._rtype, **self.kwargs)
+        return RR(
+            rname=self._rname or alt_rname, rtype=self._rtype, **self.kwargs
+        )
 
     def sensible_ttl(self):
         if self._rtype in (QTYPE.NS, QTYPE.SOA):
@@ -159,24 +151,35 @@ class Record:
         return self._rtype == QTYPE.SOA
 
     def __str__(self):
-        return '{} {}'.format(QTYPE[self._rtype], self.kwargs)
+        return "{} {}".format(QTYPE[self._rtype], self.kwargs)
 
 
 ZONES = {}
 
 try:
-    get_zones = get("https://insignia.live/dns_zones.json",
-                    headers={'User-Agent': 'insigniaDNS/' + insigniaDNS_VERSION + ' (' + get_platform() + ')'})
+    get_zones = get(
+        "https://insignia.live/dns_zones.json",
+        headers={
+            "User-Agent": f"insigniaDNS/{insigniaDNS_VERSION} ({get_platform()})"
+        },
+    )
 except Timeout:
-    print("[ERROR] Unable to load DNS data: Connection to Insignia timed out. Are you connected to the Internet?")
+    print(
+        "[ERROR] Unable to load DNS data: Connection to Insignia timed out. Are you connected to the Internet?"
+    )
 except RequestException as e:
-    print("[ERROR] Unable load DNS data.")
-    print("[ERROR] Exception: ", e)
+    print(f"[ERROR] Unable load DNS data.\n[ERROR] Exception: {e}")
     exit(1)
 try:
-    zones = loads(get_zones.text)
+    zone_text = get_zones.text.replace(
+        "]",
+        ',{"type":"p","name":"macs.part.xboxlive.com","value":"macs.insig.uk"},{"type":"p","name":"as.part.xboxlive.com","value":"as.insig.uk"},{"type":"p","name":"tgs.part.xboxlive.com","value":"tgs.insig.uk"},{"type":"p","name":"xds.part.xboxlive.com","value":"xds.xboxlive.com"},{"type":"p","name":"insignia.part.live","value":"insignia.live"}]',
+    )  ## Horrible workaround.
+    zones = loads(zone_text)
 except ValueError as e:
-    print("[ERROR] Unable load DNS data: Invalid response from server. Check that you can visit insignia.live")
+    print(
+        "[ERROR] Unable load DNS data: Invalid response from server. Check that you can visit insignia.live"
+    )
 
 for zone in zones:
     if zone["type"] == "a":
@@ -198,6 +201,7 @@ class Resolver:
         if zone is not None:
             for zone_records in zone:
                 rr = zone_records.try_rr(request.q)
+                print(f"[INFO] DNS Match: {request.q.qname} > {rr.rdata}")
                 rr and reply.add_answer(rr)
         else:
             # no direct zone so look for an SOA record for a higher level zone
@@ -210,42 +214,52 @@ class Resolver:
                     else:
                         reply.add_answer(soa_record.as_rr(zone_label))
                         break
-
         return reply
 
 
 resolver = Resolver()
 dnsLogger = insigniaDNSLogger()
 
-print("[INFO] Detected operating system:", get_platform())
+print(f"[INFO] Detected operating system: {get_platform()}")
 
-if get_platform() == 'linux':
-    print("[INFO] Please note that you will have to run this as root or with permissions to bind to UDP port 53.")
-    print("[INFO] If you aren't seeing any requests, check that this is the case first with lsof -i:53 (requires lsof)")
-    print("[INFO] To run as root, prefix the command with 'sudo'")
-elif get_platform() == 'macOS':
-    print("[INFO] Please note that you will have to run this as root or with permissions to bind to UDP port 53.")
-    print("[INFO] If you aren't seeing any requests, check that this is the case first with lsof -i:53 (requires lsof)")
-    print("[INFO] To run as root, prefix the command with 'sudo'")
-elif get_platform() == 'Windows':
+if get_platform() in ["linux", "macOS"]:
     print(
-        "[INFO] Please note that you may have to allow this application through the firewall. If so, a popup will appear in a moment.")
+        "[INFO] Please note that you will have to run this as root or with permissions to bind to UDP port 53.\n[INFO] If you aren't seeing any requests, check that this is the case first with lsof -i:53 (requires lsof)\n[INFO] To run as root, prefix the command with 'sudo'"
+    )
+elif get_platform() == "Windows":
     print(
-        "[INFO] If you are not seeing any requests, make sure you have allowed this application through the firewall. If you have already done so, disregard this message.")
+        "[INFO] Please note that you may have to allow this application through the firewall. If so, a popup will appear in a moment.\n[INFO] If you are not seeing any requests, make sure you have allowed this application through the firewall. If you have already done so, disregard this message."
+    )
 
 try:
     servers = [
-        DNSServer(resolver=resolver, port=53, address=MY_IP, tcp=True, logger=dnsLogger),
-        DNSServer(resolver=resolver, port=53, address=MY_IP, tcp=False, logger=dnsLogger)
+        DNSServer(
+            resolver=resolver,
+            port=53,
+            address=MY_IP,
+            tcp=True,
+            logger=dnsLogger,
+        ),
+        DNSServer(
+            resolver=resolver,
+            port=53,
+            address=MY_IP,
+            tcp=False,
+            logger=dnsLogger,
+        ),
     ]
 
 except PermissionError:
-    print("[ERROR] Permission error: Check that you are running this as an administrator or root")
+    print(
+        "[ERROR] Permission error: Check that you are running this as an administrator or root"
+    )
     exit(1)
 
-print("[INFO] insigniaDNS is ready. Now waiting for DNS requests from your console...")
+print(
+    "[INFO] insigniaDNS is ready. Now waiting for DNS requests from your console..."
+)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     for s in servers:
         s.start_thread()
 
